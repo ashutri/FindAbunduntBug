@@ -21,9 +21,6 @@ public class BugFinder {
 	@Autowired
 	private WeightedGraph wGraph;
 
-
-
-
 	@Autowired
 	private BugManager val;
 
@@ -118,7 +115,6 @@ public class BugFinder {
 			}
 		}
 
-
 		return val;
 	}
 
@@ -143,13 +139,11 @@ public class BugFinder {
 		Graph graph=wGraph.new Graph(n);
 		for(int i=1;i<n;i++)
 		{
-
 			graph.addEgde(Integer.parseInt(allRows.get(i)[2]), 
 					Integer.parseInt(allRows.get(i)[1]), allRows.get(i)[arrSize-2], Integer.parseInt(allRows.get(i)[arrSize-1]));
 		}
 
 		graph.printGraph();
-
 
 		return val;
 	}
