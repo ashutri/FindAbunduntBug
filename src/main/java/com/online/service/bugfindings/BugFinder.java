@@ -7,16 +7,22 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import com.online.service.bugfindings.WeightedGraph.Graph;
 import com.univocity.parsers.tsv.TsvParser; 
-import com.univocity.parsers.tsv.TsvParserSettings; 
+import com.univocity.parsers.tsv.TsvParserSettings;  
 
 @RestController
 public class BugFinder {
 
 	@Autowired
-	private Tree tree;
+	private WeightedGraph wGraph;
+
+
+
 
 	@Autowired
 	private BugManager val;
@@ -61,15 +67,14 @@ public class BugFinder {
 			}
 
 		}
-
-		int max=0;
-		int max1=0;
+		Map<String, Integer> cache=new HashMap<>();
+		Integer max=0;
 		double mostAbundant=0;
 		for(int j=0;j<res.size();j++)
 		{
 			if(j>0 && !res.get(j)[0].equals(res.get(j-1)[0]))
 			{
-				max1=(int) mostAbundant;
+				max=(int) mostAbundant;
 				mostAbundant=0;
 			}	
 			for(int i=1;i<n;i++)
@@ -90,48 +95,61 @@ public class BugFinder {
 				}
 			}
 			mostAbundant/=100;
-			if(max1<(int) mostAbundant)
+			if(!allRows.get(j)[2].equals(res.get(j)[0]))
 			{
-				max=(int) mostAbundant;
-				val.setMostAbunduntBug(Integer.parseInt(res.get(j)[0]));
-				val.setOccurrences(max);
+				if(max<(int) mostAbundant)
+				{
+					max=(int) mostAbundant;
+					cache.put(res.get(j)[0], max);
+
+				}
 			}
+
 		}
-
-
-		/**
-		for(int i=0;i<res.size();i++)
+		String strKey = null;
+		for(Map.Entry entry: cache.entrySet())
 		{
 
-			if(i==0)
-			{
-				tree.root=new Node(Integer.parseInt(res.get(i)[1]));
-				if(Integer.parseInt(res.get(i)[0])>tree.root.data)
-					tree.root=tree.insert(tree.root, Integer.parseInt(res.get(i)[0]));
-				else
-					tree.root=tree.insert(tree.root, Integer.parseInt(res.get(i)[0]));
-
-				//System.out.println(tree.root.data+" "+tree.root.right.data +" "+Integer.parseInt(res.get(i)[0]));
-				continue;
+			if(max.equals(entry.getValue())){
+				strKey = (String) entry.getKey();
+				val.setMostAbunduntBug(Integer.parseInt(strKey));
+				val.setOccurrences((int) entry.getValue());
+				break; //breaking because its one to one map
 			}
-			for(int j=1;j>=0;j--)
-			{
-				if(tree.root.right!=null && Integer.parseInt(res.get(i)[j])>tree.root.right.data)
-				{
-					System.out.println(Integer.parseInt(res.get(i)[j]));
-					tree.root.right=tree.insert(tree.root.right, Integer.parseInt(res.get(i)[j]));
-
-				}
-				if(tree.root.left!=null && Integer.parseInt(res.get(i)[j])<tree.root.left.data)
-				{
-					tree.root.left=tree.insert(tree.root.left, Integer.parseInt(res.get(i)[j]));
-
-				}
-			}
-
 		}
-		 **/
-	
+
+
+		return val;
+	}
+
+	@GetMapping("/abundunt")
+	public BugManager findAbundunt() 
+	{
+		//String fileName="/data.tsv";
+		File file = null;
+		try {
+			file = ResourceUtils.getFile("classpath:data.tsv");
+
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		TsvParserSettings settings = new TsvParserSettings(); 
+		settings.getFormat().setLineSeparator("/t"); 
+		TsvParser parser = new TsvParser(settings); 
+		List<String[]> allRows = parser.parseAll(file);
+		int n=allRows.size();
+		int arrSize=allRows.get(0).length;
+		Graph graph=wGraph.new Graph(n);
+		for(int i=1;i<n;i++)
+		{
+
+			graph.addEgde(Integer.parseInt(allRows.get(i)[2]), 
+					Integer.parseInt(allRows.get(i)[1]), allRows.get(i)[arrSize-2], Integer.parseInt(allRows.get(i)[arrSize-1]));
+		}
+
+		graph.printGraph();
+
 
 		return val;
 	}
